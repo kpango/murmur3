@@ -27,14 +27,15 @@ func (m *MurmurHash3) Sum128(data []byte) (uint64, uint64) {
 
 	var (
 		blocks  = *(*[]uint64)(unsafe.Pointer(&data))
-		nblocks = len(data) / 16
+		ld      = len(data)
+		nblocks = ld >> 4
 	)
 
 	m.k1 = 0
 	m.k2 = 0
 	for i := 0; i < nblocks; i++ {
-		m.k1 = blocks[i*2+0]
-		m.k2 = blocks[i*2+1]
+		m.k1 = blocks[i<<1+0]
+		m.k2 = blocks[i<<1+1]
 
 		m.k1Calc()
 		m.h1 = (rotl64(m.h1, 27)+m.h2)*5 + 0x52dce729
@@ -46,8 +47,7 @@ func (m *MurmurHash3) Sum128(data []byte) (uint64, uint64) {
 	m.k1 = 0
 	m.k2 = 0
 
-	tail := data[nblocks*16:]
-
+	tail := data[nblocks<<4:]
 	switch len(tail) & 15 {
 	case 15:
 		m.k2 ^= uint64(tail[14]) << 48
@@ -96,19 +96,20 @@ func (m *MurmurHash3) Sum128(data []byte) (uint64, uint64) {
 		m.k1 ^= uint64(tail[0]) << 0
 		m.k1Calc()
 	}
+	m.h1 ^= *(*uint64)(unsafe.Pointer(&ld))
+	m.h2 ^= *(*uint64)(unsafe.Pointer(&ld))
 
-	m.h1 ^= uint64(len(data))
-	m.h2 ^= uint64(len(data))
-	m.h1 += m.h2
-	m.h2 += m.h1
+	f1 := fmix64(m.h1 + m.h2)
+	f2 := fmix64(m.h1 + m.h2<<1)
 
-	m.h1 = fmix64(m.h1)
-	m.h2 = fmix64(m.h2)
-
-	m.h1 += m.h2
-	m.h2 += m.h1
-
-	return m.h1, m.h2
+	return f1 + f2, f1 + f2<<1
+	// m.h1 += m.h2
+	// m.h2 += m.h1
+	// m.h1 = fmix64(m.h1)
+	// m.h2 = fmix64(m.h2)
+	// m.h1 += m.h2
+	// m.h2 += m.h1
+	// return m.h1, m.h2
 }
 
 func (m *MurmurHash3) k1Calc() {
