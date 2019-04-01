@@ -103,13 +103,6 @@ func (m *MurmurHash3) Sum128(data []byte) (uint64, uint64) {
 	f2 := fmix64(m.h1 + m.h2<<1)
 
 	return f1 + f2, f1 + f2<<1
-	// m.h1 += m.h2
-	// m.h2 += m.h1
-	// m.h1 = fmix64(m.h1)
-	// m.h2 = fmix64(m.h2)
-	// m.h1 += m.h2
-	// m.h2 += m.h1
-	// return m.h1, m.h2
 }
 
 func (m *MurmurHash3) k1Calc() {
